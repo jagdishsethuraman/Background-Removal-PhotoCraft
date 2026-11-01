@@ -467,6 +467,12 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
                     "--tolerance", str(sensitivity),
                     "--json"
                 ]
+                choke_val = req.get("choke")
+                if choke_val is not None:
+                    try:
+                        cmd.extend(["--choke", str(int(choke_val))])
+                    except (ValueError, TypeError):
+                        pass
                 if not refine:
                     cmd.extend(["--refine", "false"])
                 if not clear_holes:

@@ -61,6 +61,10 @@ struct Args {
     #[arg(long, default_value_t = true)]
     defringe: bool,
 
+    /// Edge choke radius in pixels to eliminate anti-aliased backdrop halos (default: 3).
+    #[arg(long, default_value_t = 3)]
+    choke: u32,
+
     /// Decal 1-based index to isolate and crop (sheet mode).
     #[arg(long, value_name = "INDEX")]
     decal: Option<usize>,
@@ -133,7 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match effective_mode {
         ExtractionMode::Sheet => {
             mode_str = "sheet";
-            let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe);
+            let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe, args.choke);
             out_rgba = cutout_img;
             detected_decals = decals;
         }
@@ -179,7 +183,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 // Fallback to sheet mode if subject saliency produced empty region
-                let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe);
+                let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe, args.choke);
                 out_rgba = cutout_img;
                 detected_decals = decals;
             }
@@ -293,13 +297,14 @@ fn is_uniform_perimeter(img: &RgbaImage) -> bool {
     std_dev < 32.0
 }
 
-/// Extracts sheet cyclorama background with bilinear gradient modeling, enclosed cavity clearing, and edge defringing.
+/// Extracts sheet cyclorama background with bilinear gradient modeling, enclosed cavity clearing, adaptive edge choke, and defringing.
 fn extract_sheet_cyclorama(
     img: &RgbaImage,
     tolerance: f32,
     min_island: usize,
     clear_holes: bool,
     defringe: bool,
+    choke: u32,
 ) -> (RgbaImage, Vec<DecalInfo>) {
     let (w, h) = img.dimensions();
     let total = (w * h) as usize;
@@ -460,6 +465,39 @@ fn extract_sheet_cyclorama(
                                     let t = ((d - tol_low) / (tol_high - tol_low)).clamp(0.0, 1.0);
                                     alpha[c_idx] = alpha[c_idx].min(t * 255.0);
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Step 2b: Adaptive Edge Choke (eliminates backdrop color bleed & Gibbs ringing along outer silhouette)
+    if choke > 0 {
+        let choke_tol_low = (tolerance * 3.6).max(105.0);
+        let choke_tol_high = (tolerance * 4.8).max(155.0);
+
+        for _ in 0..choke {
+            let prev_alpha = alpha.clone();
+            for y in 0..h {
+                for x in 0..w {
+                    let idx = (y * w + x) as usize;
+                    if prev_alpha[idx] > 0.0 {
+                        let is_border = (x > 0 && prev_alpha[idx - 1] == 0.0)
+                            || (x + 1 < w && prev_alpha[idx + 1] == 0.0)
+                            || (y > 0 && prev_alpha[idx - w as usize] == 0.0)
+                            || (y + 1 < h && prev_alpha[idx + w as usize] == 0.0);
+
+                        if is_border {
+                            let px = img.get_pixel(x, y);
+                            let bg = bg_color_at(x, y);
+                            let d = color_dist(px, bg);
+                            if d < choke_tol_low {
+                                alpha[idx] = 0.0;
+                            } else if d < choke_tol_high {
+                                let factor = (d - choke_tol_low) / (choke_tol_high - choke_tol_low);
+                                alpha[idx] = alpha[idx].min(prev_alpha[idx] * factor);
                             }
                         }
                     }
