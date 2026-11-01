@@ -906,6 +906,36 @@
 
         <div class="setting-row">
           <div>
+            <div class="setting-label">Clear Letter Holes (O, B, A)</div>
+            <div class="setting-hint">Remove background in closed loops &amp; counters</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chkClearHoles" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Edge Defringe (Remove Halo)</div>
+            <div class="setting-hint">Strip yellow/teal background color spill from outlines</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chkDefringe" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="setting-label">Color Tolerance &amp; Gradient</div>
+            <span id="lblToleranceVal" style="font-size: 11px; font-weight: 700; color: var(--cyan); background: rgba(6,182,212,0.1); padding: 2px 6px; border-radius: 4px;">25</span>
+          </div>
+          <input type="range" id="rangeTolerance" min="10" max="60" value="25" style="width: 100%; accent-color: var(--cyan); cursor: pointer;">
+        </div>
+
+        <div class="setting-row">
+          <div>
             <div class="setting-label">Edge Refine (Guided Filter)</div>
             <div class="setting-hint">He et al. soft thread &amp; hair matting</div>
           </div>
@@ -1168,6 +1198,16 @@ place_artwork()</code></pre>
     const btnExecute = document.getElementById('btnExecute');
     const btnText = document.getElementById('btnText');
     const chkRefine = document.getElementById('chkRefine');
+    const chkClearHoles = document.getElementById('chkClearHoles');
+    const chkDefringe = document.getElementById('chkDefringe');
+    const rangeTolerance = document.getElementById('rangeTolerance');
+    const lblToleranceVal = document.getElementById('lblToleranceVal');
+
+    if (rangeTolerance && lblToleranceVal) {
+      rangeTolerance.addEventListener('input', () => {
+        lblToleranceVal.innerText = rangeTolerance.value;
+      });
+    }
     const chkSampleAll = document.getElementById('chkSampleAll');
     
     // Engine mode buttons & decal bar
@@ -1497,6 +1537,9 @@ place_artwork()</code></pre>
       const payload = {
         input_path: currentInputPath,
         refine: chkRefine.checked,
+        clear_holes: chkClearHoles ? chkClearHoles.checked : true,
+        defringe: chkDefringe ? chkDefringe.checked : true,
+        tolerance: rangeTolerance ? parseFloat(rangeTolerance.value) : 25.0,
         sample_all_layers: chkSampleAll.checked,
         target_piece: selTargetPiece.value,
         width_mm: parseFloat(numWidthMm.value) || 150.0,

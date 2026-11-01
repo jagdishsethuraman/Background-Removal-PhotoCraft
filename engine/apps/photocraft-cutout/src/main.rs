@@ -1,7 +1,7 @@
 //! photocraft-cutout: Ultra-compact, headless background removal binary.
 //! Supports dual-engine extraction:
 //!   - `subject`: GrabCut + GMM Saliency + Guided Filter edge matting (ideal for apparel packshots).
-//!   - `sheet`: Adaptive cyclorama perimeter flood + connected-component decal extractor (for gang sheets).
+//!   - `sheet`: Adaptive cyclorama perimeter flood + bilinear gradient modeling + enclosed cavity hole clearing (for gang sheets & typography).
 //!   - `auto`: Automatically selects mode based on perimeter background uniformity.
 
 use std::collections::VecDeque;
@@ -45,13 +45,21 @@ struct Args {
     #[arg(short, long, value_enum, default_value = "auto")]
     mode: ExtractionMode,
 
-    /// Color tolerance threshold for cyclorama sheet extraction (default: 22.0).
-    #[arg(short, long, default_value_t = 22.0)]
+    /// Color tolerance threshold for cyclorama sheet extraction (default: 25.0).
+    #[arg(short, long, default_value_t = 25.0)]
     tolerance: f32,
 
     /// Apply Guided Filter edge matting for soft fabric / thread fringe.
     #[arg(short, long, default_value_t = true)]
     refine: bool,
+
+    /// Clear enclosed background cavities / counter holes (inside 'O', 'B', 'A', loops).
+    #[arg(long, default_value_t = true)]
+    clear_holes: bool,
+
+    /// Decontaminate edge pixels to strip background color halo / fringe.
+    #[arg(long, default_value_t = true)]
+    defringe: bool,
 
     /// Decal 1-based index to isolate and crop (sheet mode).
     #[arg(long, value_name = "INDEX")]
@@ -125,18 +133,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match effective_mode {
         ExtractionMode::Sheet => {
             mode_str = "sheet";
-            let (alpha_mask, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island);
+            let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe);
+            out_rgba = cutout_img;
             detected_decals = decals;
-
-            // Apply alpha mask
-            for y in 0..height {
-                for x in 0..width {
-                    let idx = (y * width + x) as usize;
-                    let a = alpha_mask[idx];
-                    let px = out_rgba.get_pixel_mut(x, y);
-                    px[3] = (px[3] as f32 * a / 255.0).round().clamp(0.0, 255.0) as u8;
-                }
-            }
         }
         ExtractionMode::Subject | ExtractionMode::Auto => {
             mode_str = "subject";
@@ -180,16 +179,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 // Fallback to sheet mode if subject saliency produced empty region
-                let (alpha_mask, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island);
+                let (cutout_img, decals) = extract_sheet_cyclorama(&img, args.tolerance, args.min_island, args.clear_holes, args.defringe);
+                out_rgba = cutout_img;
                 detected_decals = decals;
-                for y in 0..height {
-                    for x in 0..width {
-                        let idx = (y * width + x) as usize;
-                        let a = alpha_mask[idx];
-                        let px = out_rgba.get_pixel_mut(x, y);
-                        px[3] = (px[3] as f32 * a / 255.0).round().clamp(0.0, 255.0) as u8;
-                    }
-                }
             }
         }
     }
@@ -298,48 +290,72 @@ fn is_uniform_perimeter(img: &RgbaImage) -> bool {
         var += dr * dr + dg * dg + db * db;
     }
     let std_dev = (var / n).sqrt();
-    std_dev < 18.0
+    std_dev < 32.0
 }
 
-/// Extracts sheet cyclorama background and detects all individual decal islands.
-fn extract_sheet_cyclorama(img: &RgbaImage, tolerance: f32, min_island: usize) -> (Vec<f32>, Vec<DecalInfo>) {
+/// Extracts sheet cyclorama background with bilinear gradient modeling, enclosed cavity clearing, and edge defringing.
+fn extract_sheet_cyclorama(
+    img: &RgbaImage,
+    tolerance: f32,
+    min_island: usize,
+    clear_holes: bool,
+    defringe: bool,
+) -> (RgbaImage, Vec<DecalInfo>) {
     let (w, h) = img.dimensions();
     let total = (w * h) as usize;
+    let mut out_rgba = img.clone();
     let mut alpha = vec![255.0f32; total];
     let mut visited = vec![false; total];
 
-    // Compute robust background color from perimeter 4 corners & edges
-    let corner_samples = [
-        img.get_pixel(0, 0),
-        img.get_pixel(w - 1, 0),
-        img.get_pixel(0, h - 1),
-        img.get_pixel(w - 1, h - 1),
-        img.get_pixel(w / 2, 0),
-        img.get_pixel(w / 2, h - 1),
-        img.get_pixel(0, h / 2),
-        img.get_pixel(w - 1, h / 2),
-    ];
-    let mut bg_r = 0.0f32;
-    let mut bg_g = 0.0f32;
-    let mut bg_b = 0.0f32;
-    for p in corner_samples {
-        bg_r += p[0] as f32;
-        bg_g += p[1] as f32;
-        bg_b += p[2] as f32;
-    }
-    let count = corner_samples.len() as f32;
-    let bg_color = [bg_r / count, bg_g / count, bg_b / count];
+    // Compute robust corner colors for bilinear gradient modeling
+    let sample_corner = |x_start: u32, y_start: u32| -> [f32; 3] {
+        let (mut r, mut g, mut b, mut count) = (0.0f32, 0.0f32, 0.0f32, 0.0f32);
+        for dy in 0..6.min(h) {
+            for dx in 0..6.min(w) {
+                let px = img.get_pixel(x_start + dx, y_start + dy);
+                r += px[0] as f32;
+                g += px[1] as f32;
+                b += px[2] as f32;
+                count += 1.0;
+            }
+        }
+        [r / count, g / count, b / count]
+    };
 
-    let color_dist = |p: &Rgba<u8>| -> f32 {
-        let dr = p[0] as f32 - bg_color[0];
-        let dg = p[1] as f32 - bg_color[1];
-        let db = p[2] as f32 - bg_color[2];
+    let c_tl = sample_corner(0, 0);
+    let c_tr = sample_corner(w.saturating_sub(6), 0);
+    let c_bl = sample_corner(0, h.saturating_sub(6));
+    let c_br = sample_corner(w.saturating_sub(6), h.saturating_sub(6));
+
+    let bg_color_at = |x: u32, y: u32| -> [f32; 3] {
+        let u = x as f32 / (w - 1).max(1) as f32;
+        let v = y as f32 / (h - 1).max(1) as f32;
+        let top = [
+            c_tl[0] * (1.0 - u) + c_tr[0] * u,
+            c_tl[1] * (1.0 - u) + c_tr[1] * u,
+            c_tl[2] * (1.0 - u) + c_tr[2] * u,
+        ];
+        let bot = [
+            c_bl[0] * (1.0 - u) + c_br[0] * u,
+            c_bl[1] * (1.0 - u) + c_br[1] * u,
+            c_bl[2] * (1.0 - u) + c_br[2] * u,
+        ];
+        [
+            top[0] * (1.0 - v) + bot[0] * v,
+            top[1] * (1.0 - v) + bot[1] * v,
+            top[2] * (1.0 - v) + bot[2] * v,
+        ]
+    };
+
+    let color_dist = |p: &Rgba<u8>, bg: [f32; 3]| -> f32 {
+        let dr = p[0] as f32 - bg[0];
+        let dg = p[1] as f32 - bg[1];
+        let db = p[2] as f32 - bg[2];
         (dr * dr + dg * dg + db * db).sqrt()
     };
 
-    // Breadth-first flood fill from border pixels
+    // Breadth-first flood fill from all perimeter border pixels
     let mut queue = VecDeque::new();
-
     for x in 0..w {
         queue.push_back((x, 0));
         queue.push_back((x, h - 1));
@@ -361,7 +377,8 @@ fn extract_sheet_cyclorama(img: &RgbaImage, tolerance: f32, min_island: usize) -
         visited[idx] = true;
 
         let px = img.get_pixel(x, y);
-        let dist = color_dist(px);
+        let bg = bg_color_at(x, y);
+        let dist = color_dist(px, bg);
 
         if dist <= tolerance {
             alpha[idx] = 0.0;
@@ -379,13 +396,100 @@ fn extract_sheet_cyclorama(img: &RgbaImage, tolerance: f32, min_island: usize) -
                 queue.push_back((x, y + 1));
             }
         } else if dist < tol_high {
-            // Anti-aliased boundary ramp
             let t = ((dist - tol_low) / (tol_high - tol_low)).clamp(0.0, 1.0);
             alpha[idx] = t * 255.0;
         }
     }
 
-    // Connected Component Analysis on foreground (alpha > 32.0)
+    // Step 2: Clear enclosed background cavities / counter holes (inside 'O', 'B', 'A', loops)
+    if clear_holes {
+        let mut hole_visited = vec![false; total];
+        for y in 0..h {
+            for x in 0..w {
+                let idx = (y * w + x) as usize;
+                if !visited[idx] && !hole_visited[idx] {
+                    let px = img.get_pixel(x, y);
+                    let bg = bg_color_at(x, y);
+                    let dist = color_dist(px, bg);
+                    if dist <= tolerance {
+                        // Found an unvisited background-colored seed inside a closed loop
+                        let mut cavity_pixels = Vec::new();
+                        let mut c_queue = VecDeque::new();
+                        c_queue.push_back((x, y));
+                        hole_visited[idx] = true;
+                        let mut touches_canvas_border = false;
+
+                        while let Some((cx, cy)) = c_queue.pop_front() {
+                            cavity_pixels.push((cx, cy));
+                            if cx == 0 || cy == 0 || cx + 1 == w || cy + 1 == h {
+                                touches_canvas_border = true;
+                            }
+
+                            let neighbors = [
+                                (cx.wrapping_sub(1), cy),
+                                (cx + 1, cy),
+                                (cx, cy.wrapping_sub(1)),
+                                (cx, cy + 1),
+                            ];
+                            for (nx, ny) in neighbors {
+                                if nx < w && ny < h {
+                                    let n_idx = (ny * w + nx) as usize;
+                                    if !visited[n_idx] && !hole_visited[n_idx] {
+                                        let n_px = img.get_pixel(nx, ny);
+                                        let n_bg = bg_color_at(nx, ny);
+                                        if color_dist(n_px, n_bg) < tol_high {
+                                            hole_visited[n_idx] = true;
+                                            c_queue.push_back((nx, ny));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // If cavity does not touch the canvas boundary and is smaller than 35% of image:
+                        // Clear it as an internal letter/artwork counter!
+                        if !touches_canvas_border && cavity_pixels.len() < total * 35 / 100 {
+                            for &(cx, cy) in &cavity_pixels {
+                                let c_idx = (cy * w + cx) as usize;
+                                let px = img.get_pixel(cx, cy);
+                                let bg = bg_color_at(cx, cy);
+                                let d = color_dist(px, bg);
+                                if d <= tolerance {
+                                    alpha[c_idx] = 0.0;
+                                } else if d < tol_high {
+                                    let t = ((d - tol_low) / (tol_high - tol_low)).clamp(0.0, 1.0);
+                                    alpha[c_idx] = alpha[c_idx].min(t * 255.0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Step 3: Apply alpha & color decontamination (defringe)
+    for y in 0..h {
+        for x in 0..w {
+            let idx = (y * w + x) as usize;
+            let a = alpha[idx] / 255.0;
+            let px = out_rgba.get_pixel_mut(x, y);
+
+            if defringe && a > 0.04 && a < 0.98 {
+                let bg = bg_color_at(x, y);
+                for c in 0..3 {
+                    let c_obs = px[c] as f32;
+                    let c_bg = bg[c];
+                    let c_clean = (c_obs - (1.0 - a) * c_bg) / a;
+                    px[c] = c_clean.round().clamp(0.0, 255.0) as u8;
+                }
+            }
+
+            px[3] = (px[3] as f32 * a).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+
+    // Step 4: Connected Component Analysis on foreground (alpha > 32.0)
     let mut component_labels = vec![0usize; total];
     let mut current_label = 0usize;
     let mut raw_components: Vec<(usize, i32, i32, i32, i32, usize)> = Vec::new(); // (id, x0, y0, x1, y1, area)
@@ -452,19 +556,12 @@ fn extract_sheet_cyclorama(img: &RgbaImage, tolerance: f32, min_island: usize) -
         }
     }
 
-    // Sort detected components in natural visual reading order (top-to-bottom, left-to-right)
-    // Cluster into rows by vertical center within 15% image height
-    let row_threshold = (h as f32 * 0.15).max(30.0) as i32;
-    filtered_components.sort_by(|a, b| {
-        let cy_a = (a.2 + a.4) / 2;
-        let cy_b = (b.2 + b.4) / 2;
-        if (cy_a - cy_b).abs() <= row_threshold {
-            let cx_a = (a.1 + a.3) / 2;
-            let cx_b = (b.1 + b.3) / 2;
-            cx_a.cmp(&cx_b)
-        } else {
-            cy_a.cmp(&cy_b)
-        }
+    // Strictly transitive sorting (guaranteed total order, prevents slice smallsort panic)
+    let row_height = (h as f32 * 0.12).max(30.0) as i32;
+    filtered_components.sort_by_key(|c| {
+        let cy = (c.2 + c.4) / 2;
+        let cx = (c.1 + c.3) / 2;
+        (cy / row_height, cx)
     });
 
     let decals = filtered_components
@@ -479,5 +576,5 @@ fn extract_sheet_cyclorama(img: &RgbaImage, tolerance: f32, min_island: usize) -
         })
         .collect();
 
-    (alpha, decals)
+    (out_rgba, decals)
 }

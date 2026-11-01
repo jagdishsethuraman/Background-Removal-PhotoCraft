@@ -420,6 +420,8 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
             
             input_path = req.get("input_path")
             refine = req.get("refine", True)
+            clear_holes = req.get("clear_holes", True)
+            defringe = req.get("defringe", True)
             sample_all = req.get("sample_all_layers", False)
             target_piece = req.get("target_piece", "Front_Body")
             width_mm = req.get("width_mm", 150.0)
@@ -433,16 +435,16 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
                 except (ValueError, TypeError):
                     decal_id = None
 
-            # Tolerance for cyclorama sheet mode (default: 22.0)
+            # Tolerance for cyclorama sheet mode (default: 25.0)
             tol_val = req.get("tolerance") or req.get("sensitivity")
             if tol_val is not None:
                 try:
                     tol_f = float(tol_val)
-                    sensitivity = (22.0 * tol_f) if tol_f <= 2.0 else tol_f
+                    sensitivity = (25.0 * tol_f) if tol_f <= 2.0 else tol_f
                 except ValueError:
-                    sensitivity = 22.0
+                    sensitivity = 25.0
             else:
-                sensitivity = 22.0
+                sensitivity = 25.0
 
             if not input_path or not os.path.exists(input_path):
                 self.send_json({"success": False, "error": f"Input file not found: {input_path}"}, status=400)
@@ -467,6 +469,10 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
                 ]
                 if not refine:
                     cmd.extend(["--refine", "false"])
+                if not clear_holes:
+                    cmd.extend(["--clear-holes", "false"])
+                if not defringe:
+                    cmd.extend(["--defringe", "false"])
                 if decal_id:
                     cmd.extend(["--decal", str(decal_id)])
 
