@@ -20,12 +20,16 @@ import sys
 import zlib
 from pathlib import Path
 
-# Configurable path to PhotoCraft CLI executable
+# Configurable path to PhotoCraft binary (prioritizes ultra-compact photocraft-cutout)
 def get_default_photocraft_bin():
     base = Path(__file__).resolve().parent
     candidates = [
+        base.parent / "engine" / "target" / "release" / "photocraft-cutout",
         base.parent / "engine" / "target" / "release" / "photocraft-cli",
+        Path("/Users/ragavij/Documents/Developer/photocraft/target/release/photocraft-cutout"),
         Path("/Users/ragavij/Documents/Developer/photocraft/target/release/photocraft-cli"),
+        Path.home() / ".cargo" / "bin" / "photocraft-cutout",
+        Path("/usr/local/bin/photocraft-cutout"),
         Path.home() / ".cargo" / "bin" / "photocraft-cli",
         Path("/usr/local/bin/photocraft-cli")
     ]
@@ -34,7 +38,7 @@ def get_default_photocraft_bin():
             return str(c)
     return str(candidates[0])
 
-DEFAULT_PHOTOCRAFT_CLI = get_default_photocraft_bin()
+DEFAULT_PHOTOCRAFT_BIN = get_default_photocraft_bin()
 
 # ----------------- Pure-Python Sheet Extractor -----------------
 
@@ -207,7 +211,7 @@ def remove_background_sheet(input_path: str, output_path: str, decal_index: int 
 
 # ----------------- PhotoCraft CLI Runner -----------------
 
-def remove_background(input_path: str, output_path: str = None, mode: str = "subject", decal_index: int = None, refine: bool = True, cli_bin: str = DEFAULT_PHOTOCRAFT_CLI) -> str:
+def remove_background(input_path: str, output_path: str = None, mode: str = "auto", decal_index: int = None, refine: bool = True, cli_bin: str = DEFAULT_PHOTOCRAFT_BIN) -> str:
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input image not found: {input_path}")
 
@@ -216,12 +220,37 @@ def remove_background(input_path: str, output_path: str = None, mode: str = "sub
         decal_str = f"_decal_{decal_index:02d}" if decal_index else ""
         output_path = str(p.parent / f"{p.stem}_cutout{decal_str}.png")
 
+    # If photocraft-cutout is available, execute dual-engine native binary
+    if os.path.exists(cli_bin) and "photocraft-cutout" in os.path.basename(cli_bin):
+        cmd = [
+            cli_bin,
+            input_path,
+            "-o", output_path,
+            "--mode", mode,
+            "--json"
+        ]
+        if not refine:
+            cmd.extend(["--refine", "false"])
+        if decal_index:
+            cmd.extend(["--decal", str(decal_index)])
+
+        print(f"[PhotoCraft Cutout] Executing: {' '.join(cmd)}")
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if proc.returncode == 0 and os.path.exists(output_path):
+            print(f"[PhotoCraft Cutout] Succeeded: {output_path}")
+            return output_path
+        else:
+            err = proc.stderr.strip() or proc.stdout.strip()
+            print(f"[PhotoCraft Cutout Warning] Binary run failed ({err}), trying fallback...")
+
+    # Fallback for sheet mode: Pure-Python
     if mode == "sheet":
         return remove_background_sheet(input_path, output_path, decal_index=decal_index)
 
-    # Single Subject Mode (PhotoCraft CLI)
+    # Fallback for subject mode: photocraft-cli
     if not os.path.exists(cli_bin):
-        raise FileNotFoundError(f"PhotoCraft CLI binary not found at '{cli_bin}'. Build release binary first.")
+        # Fall back to pure-Python sheet if no binary exists
+        return remove_background_sheet(input_path, output_path, decal_index=decal_index)
 
     params_json = f'{{"refine": {"true" if refine else "false"}, "sampleAllLayers": false}}'
     cmd = [
@@ -232,7 +261,7 @@ def remove_background(input_path: str, output_path: str = None, mode: str = "sub
         "--out", output_path
     ]
 
-    print(f"[PhotoCraft] Executing: {' '.join(cmd)}")
+    print(f"[PhotoCraft CLI] Executing: {' '.join(cmd)}")
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     if proc.returncode != 0:
@@ -242,7 +271,7 @@ def remove_background(input_path: str, output_path: str = None, mode: str = "sub
     if not os.path.exists(output_path):
         raise FileNotFoundError(f"Expected cutout output was not created at '{output_path}'")
 
-    print(f"[PhotoCraft] Cutout complete: {output_path}")
+    print(f"[PhotoCraft CLI] Cutout complete: {output_path}")
     return output_path
 
 def apply_to_vstitcher_garment(cutout_png_path: str, piece_name: str = "Front_Body", x_mm: float = 150.0, y_mm: float = 200.0, scale: float = 1.0):
@@ -289,7 +318,7 @@ def main():
     parser.add_argument("--x", type=float, default=150.0, help="Horizontal placement in mm")
     parser.add_argument("--y", type=float, default=200.0, help="Vertical placement in mm")
     parser.add_argument("--scale", type=float, default=1.0, help="Artwork scale multiplier")
-    parser.add_argument("--cli", default=DEFAULT_PHOTOCRAFT_CLI, help="Path to photocraft-cli binary")
+    parser.add_argument("--cli", default=DEFAULT_PHOTOCRAFT_BIN, help="Path to photocraft-cutout or photocraft-cli binary")
 
     args = parser.parse_args()
 

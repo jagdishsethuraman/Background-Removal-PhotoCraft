@@ -785,7 +785,7 @@
     </div>
     <div class="header-pills">
       <div class="pill"><span class="pill-dot"></span> Localhost :8095</div>
-      <div class="pill">Rust Engine: photocraft-cli v0.18</div>
+      <div class="pill" id="enginePill">Rust Engine: photocraft-cutout (1.9MB Standalone)</div>
       <div class="pill">VStitcher Python Bridge: Verified</div>
     </div>
   </header>
@@ -1254,6 +1254,15 @@ place_artwork()</code></pre>
 
     // Initialize
     async function init() {
+      try {
+        const sRes = await fetch('/api/status');
+        const sData = await sRes.json();
+        if (sData.engine_label) {
+          const pill = document.getElementById('enginePill');
+          if (pill) pill.textContent = 'Rust Engine: ' + sData.engine_label;
+        }
+      } catch (e) {}
+
       try {
         const res = await fetch('/api/samples');
         const data = await res.json();

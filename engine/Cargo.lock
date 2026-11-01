@@ -5142,6 +5142,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "photocraft-cutout"
+version = "0.18.0"
+dependencies = [
+ "clap",
+ "image",
+ "photocraft-algo",
+ "photocraft-color",
+ "photocraft-geom",
+ "photocraft-raster",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "photocraft-doc"
 version = "0.18.0"
 dependencies = [

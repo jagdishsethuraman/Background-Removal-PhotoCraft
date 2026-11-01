@@ -1,0 +1,23 @@
+[package]
+name = "photocraft-cutout"
+description = "Ultra-compact standalone background removal CLI for apparel & artwork"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "photocraft-cutout"
+path = "src/main.rs"
+
+[dependencies]
+photocraft-algo = { path = "../../crates/algo" }
+photocraft-geom = { path = "../../crates/geom" }
+photocraft-color = { path = "../../crates/color" }
+photocraft-raster = { path = "../../crates/raster" }
+clap = { workspace = true }
+image = { workspace = true, features = ["png", "jpeg"] }
+serde = { workspace = true }
+serde_json = { workspace = true }

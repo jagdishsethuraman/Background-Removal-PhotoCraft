@@ -27,20 +27,8 @@ BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
 SAMPLES_DIR = BASE_DIR / "samples"
 OUTPUT_DIR = BASE_DIR / "output"
-
-def find_photocraft_bin():
-    candidates = [
-        BASE_DIR.parent / "engine" / "target" / "release" / "photocraft-cli",
-        Path("/Users/ragavij/Documents/Developer/photocraft/target/release/photocraft-cli"),
-        Path.home() / ".cargo" / "bin" / "photocraft-cli",
-        Path("/usr/local/bin/photocraft-cli")
-    ]
-    for c in candidates:
-        if c.exists() and os.access(c, os.X_OK):
-            return c
-    return candidates[0]
-
-PHOTOCRAFT_BIN = find_photocraft_bin()
+CUTOUT_BIN = Path("/Users/ragavij/Documents/Developer/Background-Removal-PhotoCraft/engine/target/release/photocraft-cutout")
+PHOTOCRAFT_BIN = Path("/Users/ragavij/Documents/Developer/photocraft/target/release/photocraft-cli")
 
 PORT = 8095
 
@@ -363,10 +351,15 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Endpoint not found")
 
     def handle_status(self):
+        cutout_exists = CUTOUT_BIN.exists() and os.access(CUTOUT_BIN, os.X_OK)
         bin_exists = PHOTOCRAFT_BIN.exists() and os.access(PHOTOCRAFT_BIN, os.X_OK)
+        active_bin = str(CUTOUT_BIN) if cutout_exists else str(PHOTOCRAFT_BIN)
+        engine_label = "photocraft-cutout (1.9MB Standalone)" if cutout_exists else "photocraft-cli (Full Engine)"
         res = {
-            "photocraft_cli": str(PHOTOCRAFT_BIN),
-            "binary_ready": bin_exists,
+            "photocraft_cli": active_bin,
+            "engine_label": engine_label,
+            "binary_ready": cutout_exists or bin_exists,
+            "is_standalone_cutout": cutout_exists,
             "port": PORT
         }
         self.send_json(res)
@@ -445,16 +438,52 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
 
             t0 = time.perf_counter()
 
-            if mode == "sheet":
-                # Multi-Artwork Sheet (Adaptive Cyclorama Extractor)
+            if CUTOUT_BIN.exists() and os.access(CUTOUT_BIN, os.X_OK):
+                cmd = [
+                    str(CUTOUT_BIN),
+                    input_path,
+                    "-o", str(output_path),
+                    "--mode", mode,
+                    "--tolerance", str(sensitivity),
+                    "--json"
+                ]
+                if not refine:
+                    cmd.extend(["--refine", "false"])
+                if decal_id:
+                    cmd.extend(["--decal", str(decal_id)])
+
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                latency_ms = (time.perf_counter() - t0) * 1000.0
+
+                if proc.returncode == 0 and output_path.exists():
+                    try:
+                        meta = json.loads(proc.stdout)
+                        detected_decals = [
+                            {"id": d["id"], "bbox": d["bbox"], "width": d["width"], "height": d["height"], "area": d["area_px"]}
+                            for d in meta.get("decals", [])
+                        ]
+                        latency_ms = meta.get("latency_ms", latency_ms)
+                    except Exception:
+                        pass
+                else:
+                    err_msg = proc.stderr.strip() or proc.stdout.strip()
+                    self.send_json({
+                        "success": False,
+                        "error": f"photocraft-cutout execution failed: {err_msg}",
+                        "stdout": proc.stdout,
+                        "stderr": proc.stderr
+                    }, status=500)
+                    return
+            elif mode == "sheet":
+                # Multi-Artwork Sheet (Adaptive Cyclorama Extractor Fallback)
                 detected_decals = run_adaptive_sheet_cutout(input_path, output_path, sensitivity=sensitivity)
                 latency_ms = (time.perf_counter() - t0) * 1000.0
             else:
-                # Single Subject Mode (PhotoCraft CLI GrabCut)
+                # Single Subject Mode (PhotoCraft CLI GrabCut Fallback)
                 if not PHOTOCRAFT_BIN.exists():
                     self.send_json({
                         "success": False,
-                        "error": f"PhotoCraft CLI binary not found: {PHOTOCRAFT_BIN}."
+                        "error": f"PhotoCraft binary not found: {CUTOUT_BIN} or {PHOTOCRAFT_BIN}."
                     }, status=503)
                     return
 
