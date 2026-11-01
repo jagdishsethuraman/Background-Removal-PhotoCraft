@@ -424,7 +424,25 @@ class StudioHandler(http.server.SimpleHTTPRequestHandler):
             target_piece = req.get("target_piece", "Front_Body")
             width_mm = req.get("width_mm", 150.0)
             mode = req.get("detection_mode", "sheet" if "chameleon" in str(input_path).lower() else "subject")
-            sensitivity = float(req.get("sensitivity", 1.0))
+            
+            raw_decal = req.get("decal_id") or req.get("decal")
+            decal_id = None
+            if raw_decal is not None and str(raw_decal).lower() != "all":
+                try:
+                    decal_id = int(raw_decal)
+                except (ValueError, TypeError):
+                    decal_id = None
+
+            # Tolerance for cyclorama sheet mode (default: 22.0)
+            tol_val = req.get("tolerance") or req.get("sensitivity")
+            if tol_val is not None:
+                try:
+                    tol_f = float(tol_val)
+                    sensitivity = (22.0 * tol_f) if tol_f <= 2.0 else tol_f
+                except ValueError:
+                    sensitivity = 22.0
+            else:
+                sensitivity = 22.0
 
             if not input_path or not os.path.exists(input_path):
                 self.send_json({"success": False, "error": f"Input file not found: {input_path}"}, status=400)

@@ -1500,7 +1500,8 @@ place_artwork()</code></pre>
         sample_all_layers: chkSampleAll.checked,
         target_piece: selTargetPiece.value,
         width_mm: parseFloat(numWidthMm.value) || 150.0,
-        detection_mode: currentEngineMode
+        detection_mode: currentEngineMode,
+        decal_id: (activeDecal && activeDecal !== 'all') ? parseInt(activeDecal) : null
       };
 
       try {
