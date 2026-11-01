@@ -1,6 +1,6 @@
-# PhotoCraft × Browzwear VStitcher — Background Removal & Artwork Placement
+# PhotoCraft — Background Removal & Artwork Placement
 
-> High-speed, non-neural background removal engine (pure Rust) and interactive localhost inspection studio with Browzwear VStitcher Open Platform 3D garment artwork placement.
+> High-speed, non-neural background removal engine (pure Rust) and interactive localhost inspection studio 3D garment artwork placement.
 
 ---
 
