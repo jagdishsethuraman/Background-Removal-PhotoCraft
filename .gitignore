@@ -1,0 +1,22 @@
+# Build & Dependency Artifacts
+target/
+**/target/
+Cargo.lock.bak
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Studio Temporary Outputs (keep presets and decal cutouts)
+studio/output/upload_*
+studio/output/test_*
+studio/output/*_cutout_*[0-9].png

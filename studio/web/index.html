@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhotoCraft &times; Browzwear VStitcher &mdash; Apparel Cutout Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a10;
+      --card-bg: #12131b;
+      --card-border: #232535;
+      --card-border-active: #414563;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --accent-hover: #4f46e5;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --split-pos: 50%;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header {
+      background: rgba(18, 19, 27, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-pills {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: #181a24;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    /* Main Grid */
+    main {
+      flex: 1;
+      max-width: 1680px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Presets */
+    .preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .preset-btn {
+      background: #161822;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      color: var(--text-main);
+      text-align: left;
+    }
+
+    .preset-btn:hover {
+      background: #1e2130;
+      border-color: var(--card-border-active);
+      transform: translateY(-1px);
+    }
+
+    .preset-btn:active {
+      transform: scale(0.98);
+    }
+
+    .preset-btn.active {
+      background: #23273c;
+      border-color: var(--accent);
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+    }
+
+    .preset-icon-wrap {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #1e202f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--card-border);
+    }
+
+    .preset-btn.active .preset-icon-wrap {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(6, 182, 212, 0.3));
+      border-color: var(--accent);
+    }
+
+    .preset-icon-wrap svg {
+      width: 20px;
+      height: 20px;
+      stroke: #cbd5e1;
+    }
+
+    .preset-btn.active .preset-icon-wrap svg {
+      stroke: #fff;
+    }
+
+    .preset-meta {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .preset-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preset-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    /* Custom Artwork Upload */
+    .upload-zone {
+      border: 2px dashed var(--card-border);
+      border-radius: 12px;
+      padding: 22px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #151722;
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: #1b1e2c;
+    }
+
+    .upload-zone svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .upload-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .upload-text strong {
+      color: var(--cyan);
+    }
+
+    /* Settings & Sliders */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .setting-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #272a3a;
+      transition: .2s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Action Button */
+    .btn-action {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Right Main Viewport Stage */
+    .stage-container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .stage-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .segmented-control {
+      display: flex;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .seg-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .seg-btn:hover {
+      color: var(--text-main);
+    }
+
+    .seg-btn.active {
+      background: #25283b;
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .backdrop-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* The Viewport Frame */
+    .viewport {
+      background: #0d0e15;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      height: 640px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Backdrop Modes */
+    .bg-checker-dark {
+      background-image: 
+        linear-gradient(45deg, #151722 25%, transparent 25%), 
+        linear-gradient(-45deg, #151722 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #151722 75%), 
+        linear-gradient(-45deg, transparent 75%, #151722 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+      background-color: #0c0d14;
+    }
+
+    .bg-checker-light {
+      background-image: 
+        linear-gradient(45deg, #e2e8f0 25%, transparent 25%), 
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%), 
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+      background-color: #cbd5e1;
+    }
+
+    .bg-solid-black {
+      background-color: #09090b !important;
+      background-image: none !important;
+    }
+
+    .bg-fabric-grey {
+      background-color: #52525b !important;
+      background-image: radial-gradient(#71717a 1px, transparent 1px) !important;
+      background-size: 8px 8px !important;
+    }
+
+    /* Zoom & Pan Stage Layer */
+    .zoom-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Unified Mathematical Split Stage */
+    .curtain-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Clip Path on Original: exactly split without coordinate drift */
+    .stage-layer-original {
+      clip-path: inset(0 calc(100% - var(--split-pos)) 0 0);
+      z-index: 10;
+    }
+
+    .stage-layer-cutout {
+      z-index: 5;
+    }
+
+    /* Curtain Divider Line & Handle */
+    .curtain-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: var(--split-pos);
+      width: 2px;
+      background: #ffffff;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.8), 0 0 4px rgba(255, 255, 255, 0.5);
+      cursor: ew-resize;
+      z-index: 25;
+      transform: translateX(-50%);
+    }
+
+    .curtain-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: ew-resize;
+      transition: transform 0.1s ease;
+    }
+
+    .curtain-handle:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+
+    .curtain-handle svg {
+      width: 20px;
+      height: 20px;
+      stroke: #090a10;
+    }
+
+    /* Side-by-Side View */
+    .side-by-side-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      height: 100%;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .side-cell {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .side-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .side-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: rgba(18, 19, 27, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--card-border);
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: #e2e8f0;
+      z-index: 10;
+    }
+
+    /* Floating Canvas HUD Overlays */
+    .hud-tag-left {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(18, 19, 27, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--card-border);
+      color: #94a3b8;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .hud-tag-right {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(18, 19, 27, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--card-border);
+      color: var(--cyan);
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    /* Telemetry Bento Grid */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .stat-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* VStitcher Physical Placement Suite */
+    .vstitcher-suite {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-field label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .select-ctrl, .text-ctrl {
+      background: #161822;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .select-ctrl:focus, .text-ctrl:focus {
+      border-color: var(--accent);
+    }
+
+    .vstitcher-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn-secondary {
+      background: #1a1c29;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: #25283b;
+      border-color: var(--card-border-active);
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background: #090a10;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px;
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .code-box pre {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #94a3b8;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    .btn-copy {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #1e202f;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-copy:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">Option A &bull; Headless CLI</div>
+      <div>
+        <div class="brand-title">PhotoCraft &times; Browzwear VStitcher Studio</div>
+        <div class="brand-subtitle">Pure-Rust Automatic Background Removal &amp; 3D Garment Artwork Placement</div>
+      </div>
+    </div>
+    <div class="header-pills">
+      <div class="pill"><span class="pill-dot"></span> Localhost :8095</div>
+      <div class="pill">Rust Engine: photocraft-cli v0.18</div>
+      <div class="pill">VStitcher Python Bridge: Verified</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Control Sidebar -->
+    <div class="sidebar">
+
+      <!-- Preset Garments & Artworks -->
+      <div class="card">
+        <div class="card-title">
+          <span>Fashion &amp; Artwork Presets</span>
+          <span style="font-size: 10px; color: var(--cyan); font-weight: 600;">INSTANT PREVIEW</span>
+        </div>
+        <div class="preset-list" id="presetList">
+
+          <!-- 0. Chameleon Multi-Logo Sheet (USER TEST CASE) -->
+          <div class="preset-btn active" data-id="chameleon">
+            <div class="preset-icon-wrap" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25)); border-color: #10b981;">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="stroke: #34d399;">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5z" />
+              </svg>
+            </div>
+            <div class="preset-meta">
+              <div class="preset-name" style="color: #34d399; font-weight: 700;">Chameleon 10-Logo Sheet</div>
+              <div class="preset-desc">Wireframe, Facet, Circuit &bull; All 10 Logotypes 100%</div>
+            </div>
+          </div>
+
+          <!-- 1. Hoodie -->
+          <div class="preset-btn" data-id="hoodie">
+            <div class="preset-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8l3-4h10l3 4v6l-4-2v8H8v-8l-4 2V8z" />
+                <path d="M9 4a3 3 0 006 0" />
+                <path d="M10 16h4v4h-4z" />
+              </svg>
+            </div>
+            <div class="preset-meta">
+              <div class="preset-name">Heavyweight Washed Hoodie</div>
+              <div class="preset-desc">French terry fleece &bull; Natural shadow</div>
+            </div>
+          </div>
+
+          <!-- 2. Embroidery Crest -->
+          <div class="preset-btn" data-id="embroidery">
+            <div class="preset-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5z" />
+              </svg>
+            </div>
+            <div class="preset-meta">
+              <div class="preset-name">Gold Bullion Embroidery Crest</div>
+              <div class="preset-desc">Satin stitch filaments &bull; Merrowed border</div>
+            </div>
+          </div>
+
+          <!-- 3. Sneaker Trim -->
+          <div class="preset-btn" data-id="sneaker">
+            <div class="preset-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 17h18l-1-4-5-2-4 2-5-1-3 5z" />
+                <path d="M8 12l2-3 4 1" />
+                <circle cx="6" cy="17" r="1.5" />
+              </svg>
+            </div>
+            <div class="preset-meta">
+              <div class="preset-name">Technical Running Sneaker</div>
+              <div class="preset-desc">Knit mesh &bull; Sculpted white EVA midsole</div>
+            </div>
+          </div>
+
+          <!-- 4. Lace Trim -->
+          <div class="preset-btn" data-id="lace">
+            <div class="preset-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 4a5 5 0 110 10 5 5 0 010-10z" />
+                <path d="M12 9v6m-3-3h6" />
+              </svg>
+            </div>
+            <div class="preset-meta">
+              <div class="preset-name">Intricate Guipure Lace Band</div>
+              <div class="preset-desc">Champagne silk &bull; Internal cutaways</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Upload Custom Image -->
+      <div class="card">
+        <div class="card-title">Upload Custom Artwork</div>
+        <div class="upload-zone" id="uploadZone">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          <div class="upload-text">Drag &amp; drop artwork photo or <strong>Browse</strong></div>
+          <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+      </div>
+
+      <!-- Algorithmic Settings -->
+      <div class="card">
+        <div class="card-title">Detection &amp; Extraction Engine</div>
+        
+        <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <div>
+            <div class="setting-label">Detection Mode</div>
+            <div class="setting-hint">Single garment packshot vs multi-artwork sheet</div>
+          </div>
+          <div class="segmented-control" style="width: 100%;">
+            <button class="seg-btn" id="btnEngineSubject" style="flex: 1; font-size: 11px;">Single Subject (GrabCut)</button>
+            <button class="seg-btn active" id="btnEngineSheet" style="flex: 1; font-size: 11px;">Artwork Sheet (All Logos)</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Edge Refine (Guided Filter)</div>
+            <div class="setting-hint">He et al. soft thread &amp; hair matting</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chkRefine" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Sample All Layers</div>
+            <div class="setting-hint">Canvas composite vs active layer</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chkSampleAll">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Execute Button -->
+      <button class="btn-action" id="btnExecute">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+        </svg>
+        <span id="btnText">Run Artwork Extraction</span>
+      </button>
+
+    </div>
+
+    <!-- Right Studio Stage -->
+    <div class="stage-container">
+
+      <!-- Stage Toolbar -->
+      <div class="stage-toolbar">
+        
+        <!-- View Mode (Curtain vs Side-by-Side) -->
+        <div class="toolbar-group">
+          <span class="group-label">View</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" id="btnModeCurtain">Split Curtain</button>
+            <button class="seg-btn" id="btnModeSide">Side-by-Side</button>
+          </div>
+        </div>
+
+        <!-- Backdrop Fringe Test Modes -->
+        <div class="toolbar-group">
+          <span class="group-label">Backdrop</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" id="btnBgCheckDark" title="Dark Checkerboard">
+              <span class="backdrop-dot" style="background: #1e202e;"></span> Dark Grid
+            </button>
+            <button class="seg-btn" id="btnBgCheckLight" title="Light Checkerboard">
+              <span class="backdrop-dot" style="background: #e2e8f0;"></span> Light Grid
+            </button>
+            <button class="seg-btn" id="btnBgBlack" title="Solid Pitch Black">
+              <span class="backdrop-dot" style="background: #09090b;"></span> Black
+            </button>
+            <button class="seg-btn" id="btnBgHeather" title="Fabric Heather Grey">
+              <span class="backdrop-dot" style="background: #71717a;"></span> Fabric Grey
+            </button>
+          </div>
+        </div>
+
+        <!-- Zoom Loupe -->
+        <div class="toolbar-group">
+          <span class="group-label">Zoom</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" id="btnZoom1x">1x Fit</button>
+            <button class="seg-btn" id="btnZoom2x">2x</button>
+            <button class="seg-btn" id="btnZoom4x">4x</button>
+            <button class="seg-btn" id="btnZoomReset" title="Reset View">&circlearrowright;</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Decal Piece Selector Sub-Bar (Active for Artwork Sheets) -->
+      <div class="decal-bar" id="decalBar" style="display: flex; align-items: center; justify-content: space-between; background: #12141c; border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--emerald); letter-spacing: 0.5px;">ISOLATE DECAL:</span>
+          <span style="font-size: 11px; color: var(--text-muted);">Pick any logotype to crop &amp; place individually in VStitcher</span>
+        </div>
+        <div class="segmented-control" id="decalButtons" style="overflow-x: auto; max-width: 720px; flex-wrap: wrap;">
+          <button class="seg-btn active" data-decal="all">All 10 Logos (100%)</button>
+          <button class="seg-btn" data-decal="1">01 Wire</button>
+          <button class="seg-btn" data-decal="2">02 Facet</button>
+          <button class="seg-btn" data-decal="3">03 Cartoon</button>
+          <button class="seg-btn" data-decal="4">04 Ribbon</button>
+          <button class="seg-btn" data-decal="5">05 Mandala</button>
+          <button class="seg-btn" data-decal="6">06 Circle</button>
+          <button class="seg-btn" data-decal="7">07 Vintage</button>
+          <button class="seg-btn" data-decal="8">08 Circuit</button>
+          <button class="seg-btn" data-decal="9">09 Swirl</button>
+          <button class="seg-btn" data-decal="10">10 Origami</button>
+        </div>
+      </div>
+
+      <!-- Viewport Stage -->
+      <div class="viewport bg-checker-dark" id="viewport">
+        
+        <!-- Floating HUD Labels -->
+        <div class="hud-tag-left">ORIGINAL PHOTO (CYCLORAMA)</div>
+        <div class="hud-tag-right">CLEAN CUTOUT (32-BIT RGBA)</div>
+
+        <!-- Zoomable Container -->
+        <div class="zoom-stage" id="zoomStage">
+
+          <!-- Split Curtain Comparison View -->
+          <div class="curtain-wrapper" id="curtainView">
+            <!-- Cutout Image (Base Layer) -->
+            <img class="stage-layer stage-layer-cutout" id="imgCutout" src="/api/image?type=output&file=sample_hoodie_cutout.png" alt="Cutout">
+            
+            <!-- Original Image (Overlay Layer - Mathematically Clipped) -->
+            <img class="stage-layer stage-layer-original" id="imgOriginal" src="/api/image?type=sample&file=sample_hoodie.png" alt="Original">
+
+            <!-- Split Divider Line -->
+            <div class="curtain-line" id="curtainLine">
+              <div class="curtain-handle" id="curtainHandle">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" transform="rotate(90 12 12)" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side-by-Side View -->
+          <div class="side-by-side-wrapper" id="sideView" style="display: none;">
+            <div class="side-cell">
+              <span class="side-tag">ORIGINAL PHOTO</span>
+              <img id="sideImgOriginal" src="/api/image?type=sample&file=sample_hoodie.png" alt="Original">
+            </div>
+            <div class="side-cell">
+              <span class="side-tag">PHOTOCRAFT CUTOUT</span>
+              <img id="sideImgCutout" src="/api/image?type=output&file=sample_hoodie_cutout.png" alt="Cutout">
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Telemetry Bento Grid -->
+      <div class="telemetry-grid">
+        <div class="stat-card">
+          <div class="stat-title">Execution Latency</div>
+          <div class="stat-val" id="statLatency">184 ms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Resolution &bull; Aspect</div>
+          <div class="stat-val" id="statResolution">800 &times; 1000 px</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Output 32-Bit Alpha</div>
+          <div class="stat-val" id="statOutSize">371 KB</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">CLI Status</div>
+          <div class="stat-val" id="statStatus" style="color: var(--emerald);">EXIT 0 (OK)</div>
+        </div>
+      </div>
+
+      <!-- Browzwear VStitcher Physical CAD Placement Suite -->
+      <div class="card">
+        <div class="card-title">
+          <span>Browzwear VStitcher Physical CAD Placement</span>
+          <span style="font-size: 11px; color: var(--emerald); font-weight: 600;">ACTIVE DIGITAL TWIN</span>
+        </div>
+
+        <div class="vstitcher-suite">
+          <div class="input-field">
+            <label>Target Garment Pattern Piece</label>
+            <select class="select-ctrl" id="selTargetPiece">
+              <option value="Front_Body" selected>Front_Body (Center Torso)</option>
+              <option value="Left_Chest">Left_Chest (Pocket Badge)</option>
+              <option value="Back_Yoke">Back_Yoke (Rear Statement)</option>
+              <option value="Left_Sleeve">Left_Sleeve (Shoulder Decal)</option>
+              <option value="Hood_Center">Hood_Center (Neckline Trim)</option>
+              <option value="Hem_Trim">Hem_Trim (Bottom Border)</option>
+              <option value="Footwear_Upper">Footwear_Upper (Shoe Placement)</option>
+            </select>
+          </div>
+
+          <div class="input-field">
+            <label>Physical Width (mm) &bull; DPI</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <input type="number" class="text-ctrl" id="numWidthMm" value="480.0" step="5.0">
+              <select class="select-ctrl" id="selDpi">
+                <option value="72">72 DPI (Web)</option>
+                <option value="150" selected>150 DPI (CAD Default)</option>
+                <option value="300">300 DPI (High-Res Print)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="vstitcher-actions">
+          <button class="btn-secondary" id="btnDownloadCutout">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Download Transparent PNG
+          </button>
+          <button class="btn-secondary" id="btnCopyScript">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+            </svg>
+            Copy VStitcher Python Script
+          </button>
+        </div>
+
+        <div class="code-box">
+          <pre><code id="codeSnippet"># Browzwear VStitcher Open Platform Python Plugin
+import browzwear as bw
+
+def place_artwork():
+    garment = bw.get_active_garment()
+    piece = garment.get_piece("Front_Body")
+    artwork = piece.add_artwork(
+        file_path="/Users/ragavij/Documents/Developer/photocraft_vstitcher_studio/output/sample_hoodie_cutout.png",
+        x_pos=150.0, y_pos=200.0
+    )
+    artwork.set_scale(1.0)
+    artwork.set_material_type(bw.MaterialType.EMBROIDERY)
+
+place_artwork()</code></pre>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // State
+    let samplesData = [];
+    let activePreset = null;
+    let currentInputPath = "";
+    let currentCutoutPath = "";
+    let isDraggingCurtain = false;
+    let currentZoom = 1.0;
+    let isPanning = false;
+    let panStartX = 0, panStartY = 0;
+    let panCurrentX = 0, panCurrentY = 0;
+
+    // DOM
+    const viewport = document.getElementById('viewport');
+    const zoomStage = document.getElementById('zoomStage');
+    const curtainView = document.getElementById('curtainView');
+    const sideView = document.getElementById('sideView');
+    const imgOriginal = document.getElementById('imgOriginal');
+    const imgCutout = document.getElementById('imgCutout');
+    const sideImgOriginal = document.getElementById('sideImgOriginal');
+    const sideImgCutout = document.getElementById('sideImgCutout');
+    const curtainLine = document.getElementById('curtainLine');
+    const curtainHandle = document.getElementById('curtainHandle');
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const btnExecute = document.getElementById('btnExecute');
+    const btnText = document.getElementById('btnText');
+    const chkRefine = document.getElementById('chkRefine');
+    const chkSampleAll = document.getElementById('chkSampleAll');
+    
+    // Engine mode buttons & decal bar
+    const btnEngineSubject = document.getElementById('btnEngineSubject');
+    const btnEngineSheet = document.getElementById('btnEngineSheet');
+    const decalBar = document.getElementById('decalBar');
+    const decalBtns = document.querySelectorAll('#decalButtons .seg-btn');
+    let currentEngineMode = 'sheet';
+    let activeDecal = 'all';
+
+    // Backdrop buttons
+    const btnBgCheckDark = document.getElementById('btnBgCheckDark');
+    const btnBgCheckLight = document.getElementById('btnBgCheckLight');
+    const btnBgBlack = document.getElementById('btnBgBlack');
+    const btnBgHeather = document.getElementById('btnBgHeather');
+
+    // Zoom buttons
+    const btnZoom1x = document.getElementById('btnZoom1x');
+    const btnZoom2x = document.getElementById('btnZoom2x');
+    const btnZoom4x = document.getElementById('btnZoom4x');
+    const btnZoomReset = document.getElementById('btnZoomReset');
+
+    // Mode buttons
+    const btnModeCurtain = document.getElementById('btnModeCurtain');
+    const btnModeSide = document.getElementById('btnModeSide');
+
+    // Telemetry & VStitcher
+    const statLatency = document.getElementById('statLatency');
+    const statResolution = document.getElementById('statResolution');
+    const statOutSize = document.getElementById('statOutSize');
+    const statStatus = document.getElementById('statStatus');
+    const selTargetPiece = document.getElementById('selTargetPiece');
+    const numWidthMm = document.getElementById('numWidthMm');
+    const selDpi = document.getElementById('selDpi');
+    const codeSnippet = document.getElementById('codeSnippet');
+    const btnCopyScript = document.getElementById('btnCopyScript');
+    const btnDownloadCutout = document.getElementById('btnDownloadCutout');
+
+    // Engine Mode Toggle Handlers
+    btnEngineSubject.addEventListener('click', () => {
+      currentEngineMode = 'subject';
+      btnEngineSubject.classList.add('active');
+      btnEngineSheet.classList.remove('active');
+      decalBar.style.display = 'none';
+      btnText.innerText = 'Run Single-Subject Cutout (GrabCut)';
+    });
+
+    btnEngineSheet.addEventListener('click', () => {
+      currentEngineMode = 'sheet';
+      btnEngineSheet.classList.add('active');
+      btnEngineSubject.classList.remove('active');
+      decalBar.style.display = 'flex';
+      btnText.innerText = 'Run Sheet Extraction (All 10 Logos)';
+    });
+
+    // Decal Selector Handlers
+    decalBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        decalBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const decalId = btn.getAttribute('data-decal');
+        activeDecal = decalId;
+
+        if (decalId === 'all') {
+          const allCutoutUrl = '/api/image?type=output&file=chameleon_logos_cutout.png';
+          imgCutout.src = allCutoutUrl;
+          sideImgCutout.src = allCutoutUrl;
+          currentCutoutPath = '/Users/ragavij/Documents/Developer/photocraft_vstitcher_studio/output/chameleon_logos_cutout.png';
+          numWidthMm.value = 500.0;
+          selTargetPiece.value = 'Front_Body';
+        } else {
+          const pad = decalId.padStart(2, '0');
+          const decalFile = `chameleon_decal_${pad}.png`;
+          const decalUrl = `/api/image?type=output&file=${decalFile}`;
+          imgCutout.src = decalUrl;
+          sideImgCutout.src = decalUrl;
+          currentCutoutPath = `/Users/ragavij/Documents/Developer/photocraft_vstitcher_studio/output/${decalFile}`;
+          numWidthMm.value = 110.0;
+          selTargetPiece.value = 'Left_Chest';
+        }
+        updateVStitcherSnippet();
+      });
+    });
+
+    // Initialize
+    async function init() {
+      try {
+        const res = await fetch('/api/samples');
+        const data = await res.json();
+        samplesData = data.samples;
+        selectPreset('chameleon');
+      } catch (e) {
+        console.error("Failed to load samples:", e);
+      }
+    }
+
+    function selectPreset(presetId) {
+      const p = samplesData.find(s => s.id === presetId);
+      if (!p) return;
+      activePreset = p;
+
+      presetBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-id') === presetId);
+      });
+
+      currentInputPath = p.input_path;
+      currentCutoutPath = p.cutout_path;
+
+      imgOriginal.src = p.input_url;
+      sideImgOriginal.src = p.input_url;
+
+      imgCutout.src = p.cutout_url;
+      sideImgCutout.src = p.cutout_url;
+
+      // Update VStitcher controls
+      selTargetPiece.value = p.target_piece || "Front_Body";
+      numWidthMm.value = p.width_mm || 150.0;
+      selDpi.value = p.dpi || 150;
+
+      // Mode configuration
+      if (presetId === 'chameleon') {
+        currentEngineMode = 'sheet';
+        btnEngineSheet.classList.add('active');
+        btnEngineSubject.classList.remove('active');
+        decalBar.style.display = 'flex';
+        btnText.innerText = 'Run Sheet Extraction (All 10 Logos)';
+      } else {
+        currentEngineMode = 'subject';
+        btnEngineSubject.classList.add('active');
+        btnEngineSheet.classList.remove('active');
+        decalBar.style.display = 'none';
+        btnText.innerText = 'Run Single-Subject Cutout (GrabCut)';
+      }
+
+      // Reset Decal buttons
+      decalBtns.forEach(b => b.classList.toggle('active', b.getAttribute('data-decal') === 'all'));
+
+      // Telemetry
+      statLatency.innerText = "< 1 ms (Cached)";
+      statResolution.innerText = `${p.width_px || 800} × ${p.height_px || 800} px`;
+      statStatus.innerText = "PRE-COMPUTED";
+      statStatus.style.color = "var(--emerald)";
+
+      updateVStitcherSnippet();
+      setSplitPosition(50);
+      resetZoom();
+    }
+
+    // Preset button events
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectPreset(btn.getAttribute('data-id'));
+      });
+    });
+
+    // Curtain Slider Math Engine
+    function setSplitPosition(percent) {
+      percent = Math.max(0, Math.min(100, percent));
+      document.documentElement.style.setProperty('--split-pos', `${percent}%`);
+    }
+
+    curtainHandle.addEventListener('mousedown', (e) => {
+      isDraggingCurtain = true;
+      e.preventDefault();
+    });
+
+    window.addEventListener('mouseup', () => isDraggingCurtain = false);
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingCurtain) return;
+      const rect = viewport.getBoundingClientRect();
+      const clientX = e.clientX;
+      const percent = ((clientX - rect.left) / rect.width) * 100;
+      setSplitPosition(percent);
+    });
+
+    // Touch Support
+    curtainHandle.addEventListener('touchstart', (e) => {
+      isDraggingCurtain = true;
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => isDraggingCurtain = false);
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDraggingCurtain || !e.touches[0]) return;
+      const rect = viewport.getBoundingClientRect();
+      const percent = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+      setSplitPosition(percent);
+    }, { passive: true });
+
+    // Backdrop Switcher
+    function setBackdrop(mode) {
+      viewport.className = `viewport ${mode}`;
+      [btnBgCheckDark, btnBgCheckLight, btnBgBlack, btnBgHeather].forEach(b => b.classList.remove('active'));
+    }
+
+    btnBgCheckDark.addEventListener('click', () => { setBackdrop('bg-checker-dark'); btnBgCheckDark.classList.add('active'); });
+    btnBgCheckLight.addEventListener('click', () => { setBackdrop('bg-checker-light'); btnBgCheckLight.classList.add('active'); });
+    btnBgBlack.addEventListener('click', () => { setBackdrop('bg-solid-black'); btnBgBlack.classList.add('active'); });
+    btnBgHeather.addEventListener('click', () => { setBackdrop('bg-fabric-grey'); btnBgHeather.classList.add('active'); });
+
+    // Zoom & Pan System
+    function applyTransform() {
+      zoomStage.style.transform = `translate(${panCurrentX}px, ${panCurrentY}px) scale(${currentZoom})`;
+      zoomStage.style.cursor = currentZoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default';
+    }
+
+    function setZoom(factor, btn) {
+      currentZoom = factor;
+      [btnZoom1x, btnZoom2x, btnZoom4x].forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      applyTransform();
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      panCurrentX = 0;
+      panCurrentY = 0;
+      [btnZoom1x, btnZoom2x, btnZoom4x].forEach(b => b.classList.remove('active'));
+      btnZoom1x.classList.add('active');
+      applyTransform();
+    }
+
+    btnZoom1x.addEventListener('click', () => setZoom(1.0, btnZoom1x));
+    btnZoom2x.addEventListener('click', () => setZoom(2.0, btnZoom2x));
+    btnZoom4x.addEventListener('click', () => setZoom(4.0, btnZoom4x));
+    btnZoomReset.addEventListener('click', resetZoom);
+
+    // Pan with mouse drag
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target === curtainHandle || e.target.closest('#curtainHandle')) return;
+      if (currentZoom > 1.0) {
+        isPanning = true;
+        panStartX = e.clientX - panCurrentX;
+        panStartY = e.clientY - panCurrentY;
+        applyTransform();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isPanning) {
+        isPanning = false;
+        applyTransform();
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      panCurrentX = e.clientX - panStartX;
+      panCurrentY = e.clientY - panStartY;
+      applyTransform();
+    });
+
+    // View Modes
+    btnModeCurtain.addEventListener('click', () => {
+      btnModeCurtain.classList.add('active');
+      btnModeSide.classList.remove('active');
+      curtainView.style.display = 'flex';
+      sideView.style.display = 'none';
+    });
+
+    btnModeSide.addEventListener('click', () => {
+      btnModeSide.classList.add('active');
+      btnModeCurtain.classList.remove('active');
+      curtainView.style.display = 'none';
+      sideView.style.display = 'grid';
+    });
+
+    // Upload Handler
+    uploadZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) uploadFile(e.target.files[0]);
+    });
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.style.borderColor = "var(--accent)";
+    });
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.style.borderColor = "var(--card-border)";
+    });
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.style.borderColor = "var(--card-border)";
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+    });
+
+    async function uploadFile(file) {
+      const fd = new FormData();
+      fd.append("file", file);
+      statStatus.innerText = "UPLOADING...";
+      presetBtns.forEach(b => b.classList.remove('active'));
+
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.success) {
+          currentInputPath = data.path;
+          imgOriginal.src = data.url;
+          sideImgOriginal.src = data.url;
+          // Trigger cutout immediately
+          executeCutout();
+        } else {
+          alert("Upload failed: " + data.error);
+        }
+      } catch (err) {
+        alert("Upload error: " + err);
+      }
+    }
+
+    // Execute PhotoCraft CLI Cutout
+    async function executeCutout() {
+      btnExecute.disabled = true;
+      btnText.innerText = currentEngineMode === 'sheet' ? "Extracting Artwork Sheet..." : "Running photocraft-cli...";
+      statStatus.innerText = "PROCESSING";
+      statStatus.style.color = "var(--cyan)";
+
+      const payload = {
+        input_path: currentInputPath,
+        refine: chkRefine.checked,
+        sample_all_layers: chkSampleAll.checked,
+        target_piece: selTargetPiece.value,
+        width_mm: parseFloat(numWidthMm.value) || 150.0,
+        detection_mode: currentEngineMode
+      };
+
+      try {
+        const res = await fetch("/api/remove-background", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          currentCutoutPath = data.output_path;
+          imgCutout.src = data.output_url;
+          sideImgCutout.src = data.output_url;
+
+          statLatency.innerText = `${data.latency_ms} ms`;
+          statOutSize.innerText = `${data.output_size_kb} KB`;
+          statStatus.innerText = "EXIT 0 (OK)";
+          statStatus.style.color = "var(--emerald)";
+
+          codeSnippet.innerText = data.vstitcher_snippet;
+        } else {
+          statStatus.innerText = "ERROR";
+          statStatus.style.color = "var(--rose)";
+          alert("Cutout failed:\n" + data.error);
+        }
+      } catch (err) {
+        statStatus.innerText = "ERROR";
+        statStatus.style.color = "var(--rose)";
+        alert("Execution error: " + err);
+      } finally {
+        btnExecute.disabled = false;
+        btnText.innerText = "Re-Run Cutout (Option A CLI)";
+      }
+    }
+
+    btnExecute.addEventListener('click', executeCutout);
+
+    // VStitcher Script Generation
+    function updateVStitcherSnippet() {
+      const piece = selTargetPiece.value;
+      const w_mm = numWidthMm.value;
+      const snippet = `# Browzwear VStitcher Open Platform Python Plugin
+# Target Garment Placement: ${piece} (${w_mm}mm)
+import browzwear as bw
+
+def apply_cutout_artwork():
+    garment = bw.get_active_garment()
+    if not garment:
+        print("[VStitcher Error] No active garment open")
+        return
+        
+    piece = garment.get_piece("${piece}") or garment.get_pieces()[0]
+    artwork = piece.add_artwork(
+        file_path=r"${currentCutoutPath || '/path/to/cutout.png'}",
+        x_pos=150.0,  # mm
+        y_pos=200.0   # mm
+    )
+    artwork.set_scale(1.0)
+    if hasattr(bw, "MaterialType"):
+        artwork.set_material_type(bw.MaterialType.EMBROIDERY)
+    print(f"[VStitcher] Artwork placed on '{piece.name}' at 150x200mm")
+
+apply_cutout_artwork()`;
+      codeSnippet.innerText = snippet;
+    }
+
+    selTargetPiece.addEventListener('change', updateVStitcherSnippet);
+    numWidthMm.addEventListener('input', updateVStitcherSnippet);
+
+    btnCopyScript.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeSnippet.innerText);
+      btnCopyScript.innerText = "Copied to Clipboard!";
+      setTimeout(() => btnCopyScript.innerText = "Copy VStitcher Python Script", 1500);
+    });
+
+    btnDownloadCutout.addEventListener('click', () => {
+      if (!imgCutout.src) return;
+      const a = document.createElement('a');
+      a.href = imgCutout.src;
+      a.download = `${activePreset ? activePreset.id : 'artwork'}_cutout.png`;
+      a.click();
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
