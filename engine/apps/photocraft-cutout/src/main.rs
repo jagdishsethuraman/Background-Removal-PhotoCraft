@@ -50,15 +50,15 @@ struct Args {
     tolerance: f32,
 
     /// Apply Guided Filter edge matting for soft fabric / thread fringe.
-    #[arg(short, long, default_value_t = true)]
+    #[arg(short, long, default_value_t = true, action = clap::ArgAction::Set)]
     refine: bool,
 
     /// Clear enclosed background cavities / counter holes (inside 'O', 'B', 'A', loops).
-    #[arg(long, default_value_t = true)]
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     clear_holes: bool,
 
     /// Decontaminate edge pixels to strip background color halo / fringe.
-    #[arg(long, default_value_t = true)]
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     defringe: bool,
 
     /// Edge choke radius in pixels to eliminate anti-aliased backdrop halos (default: 3).
